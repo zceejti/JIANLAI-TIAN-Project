@@ -92,3 +92,108 @@ X, y = CNN(model_feature, train_images, 'train')
 X_validation, y_validation = CNN(model_feature, validation_images, 'val')
 X_test, y_test = CNN(model_feature, test_images, 'test')
 
+
+############################# Step４. Train different models for different tasks. #############################
+
+def MLP(input_shape, output=1, activation='sigmoid'):
+    model = keras.models.Sequential()
+    model.add(keras.layers.Dense(512, activation='relu',input_shape = input_shape))
+    model.add(keras.layers.Dense(output,))
+    model.add(keras.layers.Activation(activation))
+    return model
+class AccHistory(keras.callbacks.Callback):
+    def __init__(self):
+        pass
+    def on_train_begin(self, logs={}):
+        self.train_acc = []
+        self.train_loss = []
+        self.val_acc = []
+        self.val_loss = []
+        self.epoch = 1
+    def on_epoch_end(self, batch, logs={}):
+        self.epoch += 1
+        self.train_acc.append(logs.get('acc'))
+        self.val_acc.append(logs.get('val_acc'))
+        self.train_loss.append(logs.get('loss'))
+        self.val_loss.append(logs.get('val_loss'))
+history = AccHistory()
+early_stopping = keras.callbacks.EarlyStopping(monitor='val_loss', patience=20, verbose=2)
+
+for item in ['smiling', 'young', 'eyeglasses', 'human', 'hair_color']:
+    print 'Traning model for %s predition...' % item
+    optimizer = keras.optimizers.SGD(lr = 0.008, momentum=0.9, decay=0.001, nesterov = True)
+    if item=='hair_color':
+        _X_train = X[np.array(y['hair_color'])!=-1, :]
+        _y_train = np.array(y[item])
+        _y_train = _y_train[_y_train!=-1]
+        _X_val = X_validation[np.array(y_validation['hair_color'])!=-1, :]
+        _y_val = np.array(y_validation[item])
+        _y_val = _y_val[_y_val!=-1]
+        _X_test = X_test[np.array(y_test['hair_color'])!=-1, :]
+        _y_test = np.array(y_test[item])
+        _y_test = _y_test[_y_test!=-1]
+        model = MLP((X.shape[1],), output=6, activation='softmax')
+        model.compile(optimizer = optimizer,loss = 'categorical_crossentropy',metrics=['accuracy'])
+        model.fit(_X_train, to_categorical(_y_train), batch_size=256, epochs=500, callbacks = [early_stopping, history],
+              validation_data=[_X_val, to_categorical(_y_val)], verbose=0)
+        print 'Accuracy:',model.evaluate(_X_test, to_categorical(_y_test), verbose=0)[1]
+    else:
+        model = MLP((X.shape[1],))
+        model.compile(optimizer = optimizer,loss = 'binary_crossentropy',metrics=['accuracy'])
+        model.fit(X, np.array(y[item]).reshape(-1,1), batch_size=256, epochs=500, callbacks = [early_stopping, history],
+                  validation_data=[X_validation, np.array(y_validation[item]).reshape(-1,1)], verbose=0)
+        print 'Accuracy:',model.evaluate(X_test, np.array(y_test[item]).reshape(-1,1), verbose=0)[1]
+    
+    plt.figure(figsize=(18,7))
+    plt.subplot(121)
+    plt.plot(history.train_acc, '--*', label='Train Acc')
+    plt.plot(history.val_acc, '-s',label='Val Acc')
+    plt.legend(fontsize=18)
+    plt.xlabel('Epoch')
+    plt.ylabel('Acc')
+    plt.title('Acc of %s prediction model.' % item, fontsize=20 )
+
+    plt.subplot(122)
+    plt.plot(history.train_loss, '--*', label='Train Loss')
+    plt.plot(history.val_loss, '-s',label='Val Loss')
+    plt.legend(fontsize=18)
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.title('Loss of %s prediction model.' % item , fontsize=20)
+    plt.savefig('./result/history_%s_model.png' % item, bbox_inches ='tight')
+    
+    print '#'*80
+## SVM 
+## In this Experiment, The performance of SVM and MLP is similar. But MLP runs faster
+##
+# def svm_gridsearch(X_train, y_train, X_val, y_val):
+#     acc = []
+#     for C in [1.0, 4.0, 8.0, 16.0]:
+#         for gamma in [0.0004, 0.001, 0.002]:
+#             clf = SVC(C = C, gamma= gamma)
+#             clf.fit(X_train, y_train)
+#             acc.append([[C, gamma], clf.score(X_val, y_val)])
+#     acc.sort(key=lambda x:x[1], reverse = True)
+#     return acc[0][0]
+
+# for item in ['smiling', 'young', 'eyeglasses', 'human', 'hair_color']:
+#     print 'Training SVM  for %s predition...' % item
+#     if item=='hair_color':
+#         _X_train = X[np.array(y['hair_color'])!=-1, :]
+#         _y_train = np.array(y[item])
+#         _y_train = _y_train[_y_train!=-1]
+#         _X_val = X_validation[np.array(y_validation['hair_color'])!=-1, :]
+#         _y_val = np.array(y_validation[item])
+#         _y_val = _y_val[_y_val!=-1]
+#         _X_test = X_test[np.array(y_test['hair_color'])!=-1, :]
+#         _y_test = np.array(y_test[item])
+#         _y_test = _y_test[_y_test!=-1]
+#         C, gamma = svm_gridsearch(_X_train, _y_train, _X_val, _y_val)
+#         clf = SVC(C = C, gamma = gamma)
+#         clf.fit(_X_train, _y_train)
+#         print 'Accuracy:', clf.score(_X_test, _y_test)
+#     else:
+#         C, gamma = svm_gridsearch(X, y[item], X_validation, y_validation[item])
+#         clf = SVC(C = C, gamma = gamma)
+#         clf.fit(X, y[item])
+#         print 'Accuracy:', clf.score(X_test, y_test[item])
