@@ -30,16 +30,17 @@ attributes['head'] = ~((attributes['hair_color']==-1) & (attributes['eyeglasses'
 attributes['usable'] = (attributes['sharpness']>30) & attributes['head']
 
 ## Pictures with -1 for all attributes can be excluded.
-plt.figure(figsize=(10,7))
-plt.subplot(121)
-demo_image = np.random.choice((attributes[(attributes['head']==True) & (attributes.sharpness<10)].file_name.values))
-plt.imshow(cv2.imread(os.path.join(image_root, '%d.png' % demo_image ))[:, :, ::-1])
-plt.title('Demo of blurred picture,\n Sharpness = %.2f' %  attributes[attributes.file_name==demo_image].sharpness.iloc[0], fontsize=20)
-plt.subplot(122)
-demo_image = np.random.choice((attributes[(attributes['head']==True) & (attributes.sharpness>300)].file_name.values))
-plt.imshow(cv2.imread(os.path.join(image_root, '%d.png' % demo_image ))[:, :, ::-1])
-plt.title('Demo of clear picture,\n Sharpness = %.2f' % attributes[attributes.file_name==demo_image].sharpness.iloc[0], fontsize=20)
-plt.savefig('./result/demo_sharpness.png', bbox_inches ='tight')
+# plt.figure()
+# plt.subplot(121)
+# demo_image = np.random.choice((attributes[(attributes['head']==True) & (attributes.sharpness<10)].file_name.values))
+# plt.imshow(cv2.imread(os.path.join(image_root, '%d.png' % demo_image ))[:, :, ::-1])
+# plt.title('Demo of blurred picture,\n Sharpness = %.2f' %  attributes[attributes.file_name==demo_image].sharpness.iloc[0], fontsize=20)
+# plt.subplot(122)
+# demo_image = np.random.choice((attributes[(attributes['head']==True) & (attributes.sharpness>300)].file_name.values))
+# plt.imshow(cv2.imread(os.path.join(image_root, '%d.png' % demo_image ))[:, :, ::-1])
+# plt.title('Demo of clear picture,\n Sharpness = %.2f' % attributes[attributes.file_name==demo_image].sharpness.iloc[0], fontsize=20)
+# plt.savefig('./result/demo_sharpness.png', bbox_inches ='tight')
+
 ############################# Step2. Split images as train, validation, test #############################
 usable_images = attributes[attributes.usable==True][['file_name', 'hair_color', 'eyeglasses', 'smiling', 'young', 'human']]
 usable_images.reset_index(drop=True, inplace=True)
@@ -92,6 +93,7 @@ X, y = CNN(model_feature, train_images, 'train')
 X_validation, y_validation = CNN(model_feature, validation_images, 'val')
 X_test, y_test = CNN(model_feature, test_images, 'test')
 
+del model_feature
 
 ############################# Step４. Train different models for different tasks. #############################
 
@@ -144,23 +146,23 @@ for item in ['smiling', 'young', 'eyeglasses', 'human', 'hair_color']:
                   validation_data=[X_validation, np.array(y_validation[item]).reshape(-1,1)], verbose=0)
         print 'Accuracy:',model.evaluate(X_test, np.array(y_test[item]).reshape(-1,1), verbose=0)[1]
     
-    plt.figure(figsize=(18,7))
-    plt.subplot(121)
-    plt.plot(history.train_acc, '--*', label='Train Acc')
-    plt.plot(history.val_acc, '-s',label='Val Acc')
-    plt.legend(fontsize=18)
-    plt.xlabel('Epoch')
-    plt.ylabel('Acc')
-    plt.title('Acc of %s prediction model.' % item, fontsize=20 )
+    # plt.figure()
+    # plt.subplot(121)
+    # plt.plot(history.train_acc, '--*', label='Train Acc')
+    # plt.plot(history.val_acc, '-s',label='Val Acc')
+    # plt.legend(fontsize=18)
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Acc')
+    # plt.title('Acc of %s prediction model.' % item, fontsize=20 )
 
-    plt.subplot(122)
-    plt.plot(history.train_loss, '--*', label='Train Loss')
-    plt.plot(history.val_loss, '-s',label='Val Loss')
-    plt.legend(fontsize=18)
-    plt.xlabel('Epoch')
-    plt.ylabel('Loss')
-    plt.title('Loss of %s prediction model.' % item , fontsize=20)
-    plt.savefig('./result/history_%s_model.png' % item, bbox_inches ='tight')
+    # plt.subplot(122)
+    # plt.plot(history.train_loss, '--*', label='Train Loss')
+    # plt.plot(history.val_loss, '-s',label='Val Loss')
+    # plt.legend(fontsize=18)
+    # plt.xlabel('Epoch')
+    # plt.ylabel('Loss')
+    # plt.title('Loss of %s prediction model.' % item , fontsize=20)
+    # plt.savefig('./result/history_%s_model.png' % item, bbox_inches ='tight')
     
     print '#'*80
 ## SVM 
@@ -197,3 +199,4 @@ for item in ['smiling', 'young', 'eyeglasses', 'human', 'hair_color']:
 #         clf = SVC(C = C, gamma = gamma)
 #         clf.fit(X, y[item])
 #         print 'Accuracy:', clf.score(X_test, y_test[item])
+
